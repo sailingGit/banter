@@ -1,0 +1,17 @@
+{
+  "name": "live-chat-copilot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test test/*.test.js",
+    "test:e2e": "npm run build && node test/e2e/run.mjs",
+    "smoke": "node --env-file-if-exists=.env.local test/smoke.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "playwright": "^1.64.1",
+    "ws": "^8.18.0"
+  }
+}
