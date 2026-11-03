@@ -19,6 +19,7 @@ for (const file of [
   'offscreen.html',
   'options.html',
   '_locales',
+  'icons',
 ]) {
   await cp(`src/${file}`, `dist/${file}`, { recursive: true });
 }

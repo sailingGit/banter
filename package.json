@@ -8,7 +8,8 @@
     "test:e2e": "npm run build && node test/e2e/run.mjs",
     "smoke": "node --env-file-if-exists=.env.local test/smoke.mjs",
     "demo": "npm run build && node test/demo/record.mjs zh && node test/demo/record.mjs en",
-    "package": "npm run build && mkdir -p release && rm -f release/banter-$npm_package_version.zip && cd dist && zip -qrX ../release/banter-$npm_package_version.zip ."
+    "package": "npm run build && mkdir -p release && rm -f release/banter-$npm_package_version.zip && cd dist && zip -qrX ../release/banter-$npm_package_version.zip .",
+    "icons": "node scripts/icons.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",

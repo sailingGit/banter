@@ -1,4 +1,5 @@
 <div align="center">
+  <img src="assets/logo.svg" width="72" height="72" alt="Banter" />
   <h1>Banter · 聊天副驾</h1>
   <p><strong>听懂对方，也接得上话。</strong></p>
   <p>Live transcription, translation and reply suggestions for voice and video chats in Chrome.</p>
@@ -194,11 +195,16 @@ npm run demo
 npm run package
 ```
 
+```bash
+npm run icons
+```
+
 - `npm test`：断句、静音过滤、计费状态、母语解析、请求格式和错误提示的单元测试。
 - `npm run test:e2e`：把扩展加载进真实的 Chromium，用本地服务模拟 OpenAI 和兼容接口，覆盖抓音频、转写、回复、看画面、选项页、中英文界面和自动停止。也可以用 `CHROMIUM_PATH` 指定已有的 Chromium。
 - `npm run smoke`：调用真实接口，测试转写、回复和识图，会产生少量费用。Key 从 `.env.local` 读取，不会打印出来。
 - `npm run demo`：在演示页面上驱动真实扩展，重新录制中英两版的动画和截图，需要 ffmpeg。
 - `npm run package`：把构建好的扩展打包到 `release/`。
+- `npm run icons`：从 `assets/` 里的 SVG 重新生成扩展图标。16 和 32 像素用单独画的简化图，在工具栏里更清楚。
 
 | 环境变量 | 说明 |
 | --- | --- |
@@ -221,3 +227,4 @@ npm run package
 | `src/overlay.js` | 页面浮层 |
 | `src/options.html` | 设置页 |
 | `test/e2e/harness.mjs` | 模拟接口和加载扩展，端到端测试和演示录制共用 |
+| `assets/logo.svg` | Logo；`logo-small.svg` 是 16 和 32 像素用的简化图 |

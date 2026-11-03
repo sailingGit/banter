@@ -1,4 +1,5 @@
 <div align="center">
+  <img src="assets/logo.svg" width="72" height="72" alt="Banter" />
   <h1>Banter</h1>
   <p><strong>Understand them. Keep the conversation going.</strong></p>
   <p>Live transcription, translation and reply suggestions for voice and video chats in Chrome.</p>
@@ -194,11 +195,16 @@ npm run demo
 npm run package
 ```
 
+```bash
+npm run icons
+```
+
 - `npm test`: unit tests for turn detection, silence gating, the billing state, language resolution, request shapes and error messages.
 - `npm run test:e2e`: loads the extension into real Chromium against local stand-ins for OpenAI and a compatible endpoint, covering capture, transcription, replies, scene topics, the options page, both interface languages and auto-stop. Set `CHROMIUM_PATH` to use an existing Chromium.
 - `npm run smoke`: calls the real APIs for transcription, replies and image understanding, which costs a little. Keys come from `.env.local` and are never printed.
 - `npm run demo`: drives the real extension on a demo page and re-records the Chinese and English GIFs and screenshots. Needs ffmpeg.
 - `npm run package`: zips the built extension into `release/`.
+- `npm run icons`: renders the extension icons from the SVGs in `assets/`. 16 and 32 px use a simplified drawing that stays sharp in the toolbar.
 
 | Variable | Notes |
 | --- | --- |
@@ -221,3 +227,4 @@ Local verification (2026-11-03): **30 unit tests and the end-to-end test pass**.
 | `src/overlay.js` | The in-page panel |
 | `src/options.html` | Options page |
 | `test/e2e/harness.mjs` | Mock APIs and extension loading, shared by the e2e test and the demo |
+| `assets/logo.svg` | The logo; `logo-small.svg` is the simplified 16 and 32 px version |

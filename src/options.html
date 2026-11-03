@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <title>Banter</title>
+    <link rel="icon" href="icons/icon-32.png" />
     <style>
       body { max-width: 460px; margin: 32px auto; padding: 0 16px; font: 14px/1.5 -apple-system, "PingFang SC", sans-serif; }
       [hidden] { display: none !important; }
@@ -10,10 +11,11 @@
       input, select, textarea { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; padding: 7px 9px; font: inherit; }
       small { color: #666; font-weight: 400; }
       button { margin-top: 20px; padding: 7px 16px; font: inherit; }
+      h1 { display: flex; align-items: center; gap: 10px; }
     </style>
   </head>
   <body>
-    <h1 data-i18n="options.title"></h1>
+    <h1><img src="icons/icon-48.png" width="36" height="36" alt="" /><span data-i18n="options.title"></span></h1>
     <label>
       OpenAI API Key
       <input id="openaiKey" type="password" autocomplete="off" />
