@@ -3,6 +3,13 @@
   <p><strong>听懂对方，也接得上话。</strong></p>
   <p>Live transcription, translation and reply suggestions for voice and video chats in Chrome.</p>
   <p>
+    <img alt="Version 0.1.0" src="https://img.shields.io/badge/version-0.1.0-2f6fed?style=flat-square" />
+    <img alt="Chrome 116+" src="https://img.shields.io/badge/Chrome-116%2B-292929?style=flat-square" />
+    <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-595959?style=flat-square" />
+    <a href="https://github.com/sailingGit/live-chat-copilot/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/sailingGit/live-chat-copilot/ci.yml?branch=main&style=flat-square&label=CI" /></a>
+  </p>
+  <p>
+    <a href="#下载">下载</a> ·
     <a href="#快速开始">快速开始</a> ·
     <a href="#功能">功能</a> ·
     <a href="#费用">费用</a> ·
@@ -15,9 +22,9 @@
 
 它能用在任何有语音的网页上：随机视频聊天、网页版会议、语音房都可以。扩展不会替你操作页面，只在页面右上角显示一个浮层。
 
-![浮层：原文、音标、中文翻译和三条候选回复](docs/images/panel.png)
+![演示：开场白、实时转写、候选回复和看画面](docs/images/demo.gif)
 
-> 截图来自端到端测试的模拟数据，不包含真实对话。
+> 演示里的画面、对话和回复都是演示数据，由 `npm run demo` 驱动真实扩展录制，不是真实聊天。
 
 ## 为什么做
 
@@ -41,15 +48,39 @@ OpenAI 给组织赠送了开发者平台的 credit，我想拿来做一点自己
 | 计费提示 | 浮层顶部显示语音是否正在发送，底部显示时长和预估费用 |
 | 省钱 | 静音不发送；3 分钟没人说话、页面刷新或跳转时自动停止 |
 
+<details>
+<summary><strong>查看截图：候选回复和看画面</strong></summary>
+
+### 候选回复
+
+![对方说完一句后的翻译、音标和三条回复](docs/images/demo.png)
+
+### 看画面
+
+![根据画面里的海报和吉他给出的话题](docs/images/demo-scene.png)
+
+</details>
+
+## 下载
+
+当前版本 **[v0.1.0](https://github.com/sailingGit/live-chat-copilot/releases/tag/v0.1.0)**。
+
+| 组件 | 下载 | 验证状态 |
+| --- | --- | --- |
+| Chrome 扩展 | [live-chat-copilot-0.1.0.zip](https://github.com/sailingGit/live-chat-copilot/releases/download/v0.1.0/live-chat-copilot-0.1.0.zip) | 端到端测试通过；真实接口待实测 |
+
+解压后按下面「加载扩展」的步骤操作，不需要安装 Node.js。扩展尚未上架 Chrome 应用商店。
 ## 快速开始
 
 ### 环境要求
 
 - Chrome 116 或更高版本。
-- Node.js 20 或更高版本，用来构建扩展。
 - 一个 OpenAI API Key。实时转写和「看画面」都用它。
+- 从源码构建时需要 Node.js 20 或更高版本。
 
-### 1. 克隆并构建
+### 1. 获取扩展
+
+下载上面的 zip 并解压；或者从源码构建：
 
 ```bash
 git clone https://github.com/sailingGit/live-chat-copilot.git
@@ -62,7 +93,7 @@ cd live-chat-copilot && npm install && npm run build
 ### 2. 加载扩展
 
 1. 打开 `chrome://extensions`，开启右上角的「开发者模式」。
-2. 点「加载已解压的扩展程序」，选择 `dist` 目录。
+2. 点「加载已解压的扩展程序」，选择解压后的目录；从源码构建时选择 `dist` 目录。
 
 ### 3. 填写设置
 
@@ -143,9 +174,19 @@ npx playwright install chromium && npm run test:e2e
 npm run smoke
 ```
 
+```bash
+npm run demo
+```
+
+```bash
+npm run package
+```
+
 - `npm test`：断句、静音过滤、计费状态、请求格式和错误提示的单元测试。
 - `npm run test:e2e`：把扩展加载进真实的 Chromium，用本地服务模拟 OpenAI 和兼容接口，覆盖抓音频、转写、回复、看画面、选项页和自动停止。也可以用 `CHROMIUM_PATH` 指定已有的 Chromium。
-- `npm run smoke`：调用真实接口，会产生少量费用。Key 从 `.env.local` 读取，不会打印出来。
+- `npm run smoke`：调用真实接口，测试转写、回复和识图，会产生少量费用。Key 从 `.env.local` 读取，不会打印出来。
+- `npm run demo`：在演示页面上驱动真实扩展，重新录制 README 里的动画和截图，需要 ffmpeg。
+- `npm run package`：把构建好的扩展打包到 `release/`。
 
 | 环境变量 | 说明 |
 | --- | --- |
@@ -153,7 +194,9 @@ npm run smoke
 | `CHAT_BASE_URL` / `CHAT_API_KEY` / `CHAT_MODEL` | 选填，测试兼容接口的回复 |
 | `CHAT_FORMAT` | 选填，`json_schema`、`json_object` 或 `none` |
 
-本地验收记录（2026-11-03）：**28 项单元测试和端到端测试通过**。端到端测试里的接口都是本地模拟的。
+本地验收记录（2026-11-03）：**28 项单元测试和端到端测试通过**。端到端测试里的接口都是本地模拟的，真实接口还没有用 `npm run smoke` 跑过。
+
+仓库包含 [GitHub Actions 验证流程](.github/workflows/ci.yml)，执行单元测试并上传打包好的扩展。远程执行结果请查看 [Actions](https://github.com/sailingGit/live-chat-copilot/actions)。
 
 | 文件 | 作用 |
 | --- | --- |
@@ -164,3 +207,4 @@ npm run smoke
 | `src/suggest.js` | 提示词和回复模型调用 |
 | `src/overlay.js` | 页面浮层 |
 | `src/options.html` | 设置页 |
+| `test/e2e/harness.mjs` | 模拟接口和加载扩展，端到端测试和演示录制共用 |

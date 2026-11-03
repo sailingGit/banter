@@ -2,13 +2,15 @@
 // against local stand-ins for OpenAI and a compatible endpoint: a page plays a tone, the
 // extension captures it, and the suggestions must reach the in-page panel.
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
-import { cp, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
-import { createServer } from 'node:http';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { chromium } from 'playwright';
-import { WebSocketServer } from 'ws';
+import {
+  completed,
+  delta,
+  launchExtension,
+  panelText as readPanel,
+  startMocks,
+  waitFor,
+} from './harness.mjs';
 
 const PAGE = `<!doctype html><title>test</title>
 <button id="play">play</button><button id="quiet">quiet</button>
@@ -70,138 +72,23 @@ const SCENE = {
   ],
 };
 
-const audio = { chunks: 0, bytes: 0, peak: 0 };
-const secretRequests = [];
-const chatRequests = [];
-const realtimeEvents = [];
-let realtimeUrl = null;
-let realtimeSocket = null;
-let authProtocols = null;
-
-function json(res, body) {
-  res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(body));
-}
-
-const server = createServer((req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', '*');
-  res.setHeader('Access-Control-Allow-Methods', '*');
-  if (req.method === 'OPTIONS') return res.writeHead(204).end();
-
-  if (req.url === '/') return res.writeHead(200, { 'content-type': 'text/html' }).end(PAGE);
-  if (req.method !== 'POST') return res.writeHead(404).end();
-
-  let body = '';
-  req.on('data', (chunk) => (body += chunk));
-  req.on('end', () => {
-    const request = { url: req.url, headers: req.headers, body: JSON.parse(body) };
-    if (req.url === '/v1/realtime/client_secrets') {
-      secretRequests.push(request);
-      return json(res, { value: 'ek_test', expires_at: 0 });
-    }
-    chatRequests.push(request);
+const mock = await startMocks({
+  page: PAGE,
+  respond: (request) => {
     const content = request.body.messages[1].content;
-    let reply = REPLY;
-    if (Array.isArray(content)) reply = SCENE;
-    else if (!content.includes('<transcript>')) reply = OPENER;
-    json(res, {
-      choices: [
-        { finish_reason: 'stop', message: { role: 'assistant', content: JSON.stringify(reply) } },
-      ],
-      usage: { prompt_tokens: 500, completion_tokens: 200 },
-    });
-  });
-});
-
-const sockets = new WebSocketServer({
-  server,
-  handleProtocols: (protocols) => {
-    authProtocols = [...protocols];
-    return 'realtime';
+    if (Array.isArray(content)) return SCENE;
+    return content.includes('<transcript>') ? REPLY : OPENER;
   },
 });
-sockets.on('connection', (socket, req) => {
-  realtimeUrl = new URL(req.url, 'ws://localhost');
-  realtimeSocket = socket;
-  socket.on('message', (data) => {
-    const event = JSON.parse(data);
-    if (event.type !== 'input_audio_buffer.append') {
-      realtimeEvents.push(event);
-      return;
-    }
-    const pcm = Buffer.from(event.audio, 'base64');
-    audio.chunks++;
-    audio.bytes += pcm.length;
-    for (let i = 0; i < pcm.length; i += 2) {
-      audio.peak = Math.max(audio.peak, Math.abs(pcm.readInt16LE(i)));
-    }
-  });
-});
-
-await new Promise((resolve) => server.listen(0, resolve));
-const port = server.address().port;
-
-// The real extension gets host access from the action click through activeTab,
-// which automation cannot trigger, so the test copy is granted it directly.
-const root = await realpath(await mkdtemp(join(tmpdir(), 'copilot-e2e-')));
-const extension = join(root, 'extension');
-await cp('dist', extension, { recursive: true });
-const manifest = JSON.parse(await readFile(join(extension, 'manifest.json'), 'utf8'));
-manifest.host_permissions.push('http://localhost/*');
-await writeFile(join(extension, 'manifest.json'), JSON.stringify(manifest));
-
-// Chromium derives unpacked extension ids from the path.
-const extensionId = [...createHash('sha256').update(extension).digest('hex').slice(0, 32)]
-  .map((c) => String.fromCharCode(97 + parseInt(c, 16)))
-  .join('');
-
-const context = await chromium.launchPersistentContext(join(root, 'profile'), {
-  channel: 'chromium',
-  executablePath: process.env.CHROMIUM_PATH,
-  headless: true,
-  ignoreDefaultArgs: ['--mute-audio'],
-  args: [
-    `--disable-extensions-except=${extension}`,
-    `--load-extension=${extension}`,
-    `--allowlisted-extension-id=${extensionId}`,
-    '--autoplay-policy=no-user-gesture-required',
-  ],
-});
-
-async function waitFor(check, label, timeout = 10_000) {
-  const deadline = Date.now() + timeout;
-  while (Date.now() < deadline) {
-    if (await check()) return;
-    await new Promise((resolve) => setTimeout(resolve, 100));
-  }
-  throw new Error(`timed out waiting for ${label}`);
-}
-
-function serverSends(event) {
-  realtimeSocket.send(JSON.stringify(event));
-}
-
-const delta = (text) => ({
-  type: 'conversation.item.input_audio_transcription.delta',
-  item_id: 'item_1',
-  content_index: 0,
-  delta: text,
-});
-
-const completed = (itemId, transcript) => ({
-  type: 'conversation.item.input_audio_transcription.completed',
-  item_id: itemId,
-  content_index: 0,
-  transcript,
-});
+const { audio, chatRequests, port, realtimeEvents, secretRequests } = mock;
+const serverSends = mock.send;
+const { context, extensionId, worker, toggle, close } = await launchExtension();
 
 const commits = () =>
   realtimeEvents.filter((event) => event.type === 'input_audio_buffer.commit').length;
 
 let failed = false;
 try {
-  const worker =
-    context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker'));
   assert.ok(worker.url().includes(extensionId), `unexpected extension id: ${worker.url()}`);
 
   await worker.evaluate(
@@ -220,27 +107,8 @@ try {
   await page.goto(`http://localhost:${port}/`);
   await page.click('#play');
 
-  await worker.evaluate(async () => {
-    const [tab] = await chrome.tabs.query({ url: 'http://localhost/*' });
-    await toggle(tab);
-  });
-
-  // Playwright pierces open shadow roots only, so read the closed panel via CDP text.
-  const panelText = async () => {
-    const client = await context.newCDPSession(page);
-    await client.send('DOM.enable');
-    const { root: doc } = await client.send('DOM.getDocument', { depth: -1, pierce: true });
-    const texts = [];
-    const walk = (node) => {
-      if (node.nodeType === 3 && node.parentId && node.nodeValue.trim()) texts.push(node.nodeValue);
-      if (node.nodeName !== 'STYLE') {
-        for (const child of [...(node.children ?? []), ...(node.shadowRoots ?? [])]) walk(child);
-      }
-    };
-    walk(doc);
-    await client.detach();
-    return texts.join('\n');
-  };
+  await toggle();
+  const panelText = () => readPanel(context, page);
 
   await waitFor(() => chatRequests.length === 1, 'the opener request');
   assert.ok(chatRequests[0].body.messages[1].content.includes('openers in es'));
@@ -248,11 +116,11 @@ try {
   assert.ok(chatRequests[0].body.messages[0].content.includes('beginner'));
   await waitFor(async () => (await panelText()).includes('Por fin alguien'), 'openers in the panel');
 
-  await waitFor(() => realtimeSocket, 'the Realtime connection');
+  await waitFor(() => mock.socket, 'the Realtime connection');
   assert.equal(secretRequests[0].headers.authorization, 'Bearer sk-openai');
   assert.equal(secretRequests[0].body.session.type, 'transcription');
-  assert.deepEqual(authProtocols, ['realtime', 'openai-insecure-api-key.ek_test']);
-  assert.equal(realtimeUrl.searchParams.get('intent'), 'transcription');
+  assert.deepEqual(mock.protocols, ['realtime', 'openai-insecure-api-key.ek_test']);
+  assert.equal(mock.url.searchParams.get('intent'), 'transcription');
 
   await waitFor(() => realtimeEvents.length > 0, 'session.update');
   const [update] = realtimeEvents;
@@ -352,11 +220,7 @@ try {
   await waitFor(async () => !(await panelText()).includes('And you?'), 'the panel to close');
   assert.equal(await worker.evaluate(() => isCapturing()), false);
 
-  const startCapture = () =>
-    worker.evaluate(async () => {
-      const [tab] = await chrome.tabs.query({ url: 'http://localhost/*' });
-      await toggle(tab);
-    });
+  const startCapture = toggle;
   const isStopped = async () => !(await worker.evaluate(() => isCapturing()));
 
   await worker.evaluate(() => chrome.storage.local.set({ idleStopMs: 1500 }));
@@ -405,10 +269,7 @@ try {
   failed = true;
   console.error(err);
 } finally {
-  await context.close();
-  sockets.close();
-  server.close();
-  server.closeAllConnections();
-  await rm(root, { recursive: true, force: true });
+  await close();
+  mock.close();
 }
 process.exit(failed ? 1 : 0);

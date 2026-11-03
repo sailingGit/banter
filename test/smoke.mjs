@@ -7,7 +7,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import WebSocket from 'ws';
 import { TranscriptAssembler, TurnDetector, sessionConfig, toBase64 } from '../src/asr.js';
-import { createClient, describeError, suggest } from '../src/suggest.js';
+import {
+  createClient,
+  createVisionClient,
+  describeError,
+  describeScene,
+  suggest,
+} from '../src/suggest.js';
 
 const SPEECH = process.env.SMOKE_TEXT ?? 'Hi there, where are you from, and what do you do for fun?';
 const VOICE = process.env.SMOKE_VOICE ?? 'Samantha';
@@ -148,6 +154,20 @@ async function checkReply(settings, utterance) {
   }
 }
 
+async function checkScene() {
+  const image = `data:image/jpeg;base64,${readFileSync('test/fixtures/scene.jpg').toString('base64')}`;
+  const client = createVisionClient({ openaiKey });
+  const startedAt = performance.now();
+  try {
+    const { reply } = await describeScene(client, image, 'en');
+    const ms = Math.round(performance.now() - startedAt);
+    report(`scene (${client.model})`, Boolean(reply.scene && reply.suggestions.length === 3), `${ms} ms`);
+    console.log(JSON.stringify(reply, null, 2));
+  } catch (err) {
+    report(`scene (${client.model})`, false, describeError(err));
+  }
+}
+
 let utterance = SPEECH;
 if (openaiKey) {
   const session = sessionConfig();
@@ -168,6 +188,7 @@ if (openaiKey) {
     report('realtime transcription', false, err.message);
   }
   await checkReply({ openaiKey }, utterance);
+  await checkScene();
 } else {
   console.log('SKIP  OpenAI: OPENAI_API_KEY is not set');
 }
