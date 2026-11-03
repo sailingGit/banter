@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="zh-CN">
+<html>
   <head>
     <meta charset="utf-8" />
-    <title>聊天副驾设置</title>
+    <title>Banter</title>
     <style>
       body { max-width: 460px; margin: 32px auto; padding: 0 16px; font: 14px/1.5 -apple-system, "PingFang SC", sans-serif; }
       [hidden] { display: none !important; }
@@ -13,74 +13,79 @@
     </style>
   </head>
   <body>
-    <h1>聊天副驾设置</h1>
+    <h1 data-i18n="options.title"></h1>
     <label>
       OpenAI API Key
       <input id="openaiKey" type="password" autocomplete="off" />
-      <small>必填，实时转写用它。</small>
+      <small data-i18n="options.openaiHelp"></small>
     </label>
     <label>
-      回复模型
+      <span data-i18n="options.nativeLanguage"></span>
+      <select id="nativeLanguage"></select>
+      <small data-i18n="options.nativeLanguageHelp"></small>
+    </label>
+    <label>
+      <span data-i18n="options.replyProvider"></span>
       <select id="replyProvider">
-        <option value="openai">OpenAI（gpt-6-luna）</option>
-        <option value="custom">其他兼容 OpenAI 格式的接口</option>
+        <option value="openai">OpenAI (gpt-6-luna)</option>
+        <option value="custom" data-i18n="options.custom"></option>
       </select>
     </label>
     <label data-provider="custom">
-      接口地址
-      <input id="customBaseUrl" placeholder="例如 https://api.example.com/v1" />
-      <small>要兼容 OpenAI Chat Completions 格式。保存时 Chrome 会询问是否允许访问这个地址。</small>
+      <span data-i18n="options.baseUrl"></span>
+      <input id="customBaseUrl" placeholder="https://api.example.com/v1" />
+      <small data-i18n="options.baseUrlHelp"></small>
     </label>
     <label data-provider="custom">
       API Key
       <input id="customKey" type="password" autocomplete="off" />
-      <small>接口不需要 Key 时可以留空。</small>
+      <small data-i18n="options.customKeyHelp"></small>
     </label>
     <label data-provider="custom">
-      模型名
-      <input id="customModel" placeholder="接口支持的模型名" />
+      <span data-i18n="options.model"></span>
+      <input id="customModel" data-i18n-placeholder="options.modelPlaceholder" />
     </label>
     <label data-provider="custom">
-      结构化输出
+      <span data-i18n="options.format"></span>
       <select id="customFormat">
-        <option value="json_schema">json_schema（最稳，优先用）</option>
+        <option value="json_schema" data-i18n="options.formatSchema"></option>
         <option value="json_object">json_object</option>
-        <option value="none">不设置，只靠提示词</option>
+        <option value="none" data-i18n="options.formatNone"></option>
       </select>
-      <small>模型报 400 时换下一种。</small>
+      <small data-i18n="options.formatHelp"></small>
     </label>
     <label data-provider="custom">
-      推理强度
+      <span data-i18n="options.reasoning"></span>
       <select id="customReasoning">
-        <option value="">不发送这个参数</option>
+        <option value="" data-i18n="options.reasoningOff"></option>
         <option value="none">none</option>
         <option value="low">low</option>
         <option value="medium">medium</option>
         <option value="high">high</option>
       </select>
-      <small>强度越高回复越慢。「看画面」仍然走 OpenAI。</small>
+      <small data-i18n="options.reasoningHelp"></small>
     </label>
     <label>
-      关于我
-      <textarea id="profile" rows="4" placeholder="例如：上海程序员，喜欢滑雪和猫，正在练英语"></textarea>
-      <small>候选回复只会用这里写的信息，不会替你编造经历。这段内容会发给回复模型。</small>
+      <span data-i18n="options.profile"></span>
+      <textarea id="profile" rows="4" data-i18n-placeholder="options.profilePlaceholder"></textarea>
+      <small data-i18n="options.profileHelp"></small>
     </label>
     <label>
-      外语水平
+      <span data-i18n="options.level"></span>
       <select id="level">
-        <option value="intermediate">中级：日常词汇和简单句式</option>
-        <option value="beginner">初级：常用词和短句</option>
-        <option value="advanced">高级：地道说法和俚语</option>
+        <option value="intermediate" data-i18n="options.intermediate"></option>
+        <option value="beginner" data-i18n="options.beginner"></option>
+        <option value="advanced" data-i18n="options.advanced"></option>
       </select>
     </label>
     <label>
-      常见语言
-      <input id="languages" placeholder="例如 ru, es, en" />
-      <small>选填，用逗号分隔。第一个也是开场白的语言，留空时开场白用英语。</small>
+      <span data-i18n="options.languages"></span>
+      <input id="languages" data-i18n-placeholder="options.languagesPlaceholder" />
+      <small data-i18n="options.languagesHelp"></small>
     </label>
-    <button id="save">保存</button>
+    <button id="save" data-i18n="options.save"></button>
     <span id="saved"></span>
-    <p><small>Key 只保存在本机浏览器。转写和对话记录只在内存里，停止后即清除。</small></p>
+    <p><small data-i18n="options.footer"></small></p>
     <script src="options.js"></script>
   </body>
 </html>

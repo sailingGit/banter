@@ -1,10 +1,16 @@
+import { resolveNativeLanguage, translator, uiLanguage } from './i18n.js';
+
 (() => {
-  if (window.__copilotOverlay) return;
-  window.__copilotOverlay = true;
+  if (window.__banterOverlay) return;
+  window.__banterOverlay = true;
 
   const MAX_FRAME_SIDE = 512;
-  const BILLING_ON = '● 计费中 · 正在发送语音';
-  const BILLING_OFF = '○ 待机 · 没有发送语音';
+  const t = translator(uiLanguage(resolveNativeLanguage(window.__banterNativeLanguage)));
+  const STYLE_LABELS = {
+    relaxed: t('style.relaxed'),
+    playful: t('style.playful'),
+    'follow-up': t('style.follow-up'),
+  };
 
   const STYLES = `
     .panel {
@@ -41,7 +47,7 @@
     .speak { position: absolute; top: 6px; right: 6px; padding: 1px 6px; font-size: 11px; }
     .tag { font-size: 11px; color: #8ab4f8; }
     .text { display: block; margin-top: 2px; font-size: 15px; word-break: break-word; }
-    .zh { display: block; margin-top: 2px; font-size: 12px; color: #a3a8b4; }
+    .meaning { display: block; margin-top: 2px; font-size: 12px; color: #a3a8b4; }
     .meter { margin-top: 8px; font-size: 11px; color: #7f8592; text-align: right; }
     .meter:empty { display: none; }
   `;
@@ -52,13 +58,13 @@
     <style>${STYLES}</style>
     <div class="panel">
       <header>
-        <span class="status">准备中…</span>
-        <button data-action="look" title="截取页面上的视频画面，发给 OpenAI 找话题">看画面</button>
-        <button data-action="reset" title="换了新对象时清空上下文">新对话</button>
-        <button data-action="regenerate">换一批</button>
-        <button data-action="stop" title="停止">×</button>
+        <span class="status">${t('preparing')}</span>
+        <button data-action="look" title="${t('lookTitle')}">${t('look')}</button>
+        <button data-action="reset" title="${t('resetTitle')}">${t('reset')}</button>
+        <button data-action="regenerate">${t('regenerate')}</button>
+        <button data-action="stop" title="${t('stop')}">×</button>
       </header>
-      <div class="billing">${BILLING_OFF}</div>
+      <div class="billing">${t('billingOff')}</div>
       <div class="heard"></div>
       <div class="ipa heard-ipa"></div>
       <div class="translation"></div>
@@ -100,7 +106,7 @@
   }
 
   async function pick(el, text) {
-    // Record first, so a quick "换一批" already sees this reply.
+    // Record first, so a quick refresh already sees this reply.
     chrome.runtime.sendMessage({ target: 'offscreen', type: 'picked', text });
     cards.querySelector('.picked')?.classList.remove('picked');
     el.classList.add('picked');
@@ -108,14 +114,14 @@
       () => true,
       () => false,
     );
-    if (el.isConnected) setStatus(copied ? '已复制' : '已记录，复制失败');
+    if (el.isConnected) setStatus(t(copied ? 'copied' : 'copyFailed'));
   }
 
-  function card({ style, text, ipa, zh }, index) {
+  function card({ style, text, ipa, meaning }, index) {
     const el = document.createElement('div');
     el.className = 'card';
-    const label = `${index + 1} ${style}`;
-    for (const [name, value] of [['tag', label], ['text', text], ['ipa', ipa], ['zh', zh]]) {
+    const label = `${index + 1} ${STYLE_LABELS[style] ?? style}`;
+    for (const [name, value] of [['tag', label], ['text', text], ['ipa', ipa], ['meaning', meaning]]) {
       const span = document.createElement('span');
       span.className = name;
       span.textContent = value;
@@ -124,7 +130,7 @@
 
     const speakButton = document.createElement('button');
     speakButton.className = 'speak';
-    speakButton.textContent = '朗读';
+    speakButton.textContent = t('speak');
     speakButton.addEventListener('click', (event) => {
       event.stopPropagation();
       speak(text);
@@ -160,14 +166,14 @@
   function look() {
     const video = findVideo();
     if (!video) {
-      setStatus('页面上没有可用的视频画面', 'error');
+      setStatus(t('noVideo'), 'error');
       return;
     }
     try {
       chrome.runtime.sendMessage({ target: 'offscreen', type: 'look', image: grabFrame(video) });
     } catch (err) {
-      console.error('[copilot] frame capture failed', err);
-      setStatus('这个页面不允许截取画面', 'error');
+      console.error('[banter] frame capture failed', err);
+      setStatus(t('frameBlocked'), 'error');
     }
   }
 
@@ -201,11 +207,11 @@
     reset: () => {
       heard.textContent = '';
       clearReply();
-      setStatus('正在听…');
+      setStatus(t('listening'));
     },
     billing: (msg) => {
       billing.classList.toggle('on', msg.active);
-      billing.textContent = msg.active ? BILLING_ON : BILLING_OFF;
+      billing.textContent = t(msg.active ? 'billingOn' : 'billingOff');
     },
     meter: (msg) => {
       meter.textContent = msg.text;
@@ -215,7 +221,7 @@
       window.removeEventListener('keydown', onKey);
       speechSynthesis.cancel();
       port.disconnect();
-      window.__copilotOverlay = false;
+      window.__banterOverlay = false;
       if (!msg.notice) {
         host.remove();
         return;

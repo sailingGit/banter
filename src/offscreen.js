@@ -8,6 +8,7 @@ import {
   replyCost,
   suggest,
 } from './suggest.js';
+import { resolveNativeLanguage, translator, uiLanguage } from './i18n.js';
 
 const DEFAULT_IDLE_STOP_MS = 3 * 60 * 1000;
 const TICK_MS = 5000;
@@ -23,11 +24,9 @@ function updateMeter() {
   const minutes = Math.floor((Date.now() - session.startedAt) / 60_000);
   const cost = transcriptionCost(session.asr.sentFrames) + session.replyCost;
   const speech = sentMinutes(session.asr.sentFrames).toFixed(1);
-  const label = session.client.inputPrice ? '约' : '转写约';
-  toOverlay({
-    type: 'meter',
-    text: `开了 ${minutes} 分钟 · 语音 ${speech} 分钟 · ${label} $${cost.toFixed(2)}`,
-  });
+  // Without a reply price the estimate only covers transcription.
+  const key = session.client.inputPrice ? 'meter' : 'meterPartial';
+  toOverlay({ type: 'meter', text: session.t(key, { minutes, speech, cost: cost.toFixed(2) }) });
 }
 
 function tick() {
@@ -36,11 +35,15 @@ function tick() {
     chrome.runtime.sendMessage({
       target: 'background',
       type: 'stop',
-      notice: `${minutes} 分钟没听到说话，已自动停止`,
+      notice: session.t('idleStop', { minutes }),
     });
     return;
   }
   updateMeter();
+}
+
+function settingsTranslator(settings) {
+  return translator(uiLanguage(resolveNativeLanguage(settings.nativeLanguage)));
 }
 
 async function start({ streamId, tabId, settings }) {
@@ -61,6 +64,7 @@ async function start({ streamId, tabId, settings }) {
   worklet.connect(capture.destination);
 
   session = {
+    t: settingsTranslator(settings),
     tabId,
     turns: [],
     pending: null,
@@ -76,6 +80,7 @@ async function start({ streamId, tabId, settings }) {
     apiKey: settings.openaiKey,
     baseUrl: settings.apiBaseUrl,
     languages: parseLanguages(settings.languages),
+    t: session.t,
     onInterim: (text) => {
       session.lastHeardAt = Date.now();
       toOverlay({ type: 'interim', text });
@@ -105,7 +110,7 @@ async function respond(client, request, show) {
   const pending = new AbortController();
   session.pending = pending;
   const startedAt = performance.now();
-  toOverlay({ type: 'status', text: '生成中…' });
+  toOverlay({ type: 'status', text: session.t('generating') });
 
   try {
     const { reply, usage } = await request(pending.signal);
@@ -115,8 +120,8 @@ async function respond(client, request, show) {
     updateMeter();
   } catch (err) {
     if (isAbort(err)) return;
-    console.error('[copilot] request failed', err);
-    toOverlay({ type: 'status', level: 'error', text: describeError(err) });
+    console.error('[banter] request failed', err);
+    toOverlay({ type: 'status', level: 'error', text: describeError(err, session.t) });
   }
 }
 
@@ -140,13 +145,13 @@ function look(image) {
     (signal) => describeScene(client, image, language, { signal }),
     ({ scene, suggestions }, ms) => {
       if (suggestions.length === 0) {
-        toOverlay({ type: 'status', text: '这张画面没有可聊的话题' });
+        toOverlay({ type: 'status', text: session.t('noTopics') });
         return;
       }
       toOverlay({
         type: 'suggestions',
         language,
-        translation: `画面：${scene}`,
+        translation: session.t('scene', { scene }),
         ipa: '',
         suggestions,
         ms,
@@ -174,12 +179,13 @@ chrome.runtime.onMessage.addListener((msg) => {
   if (msg.target !== 'offscreen') return;
   if (msg.type === 'start') {
     start(msg).catch((err) => {
-      console.error('[copilot] start failed', err);
+      console.error('[banter] start failed', err);
+      const text = settingsTranslator(msg.settings)('startFailed', { error: err.message });
       chrome.runtime.sendMessage({
         target: 'background',
         type: 'overlay',
         tabId: msg.tabId,
-        payload: { type: 'status', level: 'error', text: `无法开始抓取音频：${err.message}` },
+        payload: { type: 'status', level: 'error', text },
       });
     });
     return;

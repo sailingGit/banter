@@ -46,9 +46,9 @@ const REPLY = {
   translation: '你好，你从哪里来？',
   ipa: '/haɪ wɛr ɑr ju frʌm/',
   suggestions: [
-    { style: '轻松', text: 'Hi, I am from China', ipa: '/haɪ aɪ æm frʌm ˈtʃaɪnə/', zh: '你好，我来自中国' },
-    { style: '幽默', text: 'Very far away', ipa: '/ˈvɛri fɑr əˈweɪ/', zh: '从很远的地方' },
-    { style: '追问', text: 'And you?', ipa: '/ænd ju/', zh: '你呢？' },
+    { style: 'relaxed', text: 'Hi, I am from China', ipa: '/haɪ aɪ æm frʌm ˈtʃaɪnə/', meaning: '你好，我来自中国' },
+    { style: 'playful', text: 'Very far away', ipa: '/ˈvɛri fɑr əˈweɪ/', meaning: '从很远的地方' },
+    { style: 'follow-up', text: 'And you?', ipa: '/ænd ju/', meaning: '你呢？' },
   ],
 };
 
@@ -57,18 +57,18 @@ const OPENER = {
   translation: '',
   ipa: '',
   suggestions: [
-    { style: '轻松', text: 'Hola, buenas', ipa: '', zh: '你好' },
-    { style: '幽默', text: 'Por fin alguien', ipa: '', zh: '终于有人了' },
-    { style: '追问', text: '¿De dónde eres?', ipa: '', zh: '你是哪里人？' },
+    { style: 'relaxed', text: 'Hola, buenas', ipa: '', meaning: '你好' },
+    { style: 'playful', text: 'Por fin alguien', ipa: '', meaning: '终于有人了' },
+    { style: 'follow-up', text: '¿De dónde eres?', ipa: '', meaning: '你是哪里人？' },
   ],
 };
 
 const SCENE = {
   scene: '背景里有一把吉他',
   suggestions: [
-    { style: '轻松', text: 'Nice guitar', ipa: '/naɪs ɡɪˈtɑr/', zh: '吉他不错' },
-    { style: '幽默', text: 'Play me a song', ipa: '/pleɪ mi ə sɔŋ/', zh: '给我弹一首' },
-    { style: '追问', text: 'Do you play?', ipa: '/du ju pleɪ/', zh: '你会弹吗？' },
+    { style: 'relaxed', text: 'Nice guitar', ipa: '/naɪs ɡɪˈtɑr/', meaning: '吉他不错' },
+    { style: 'playful', text: 'Play me a song', ipa: '/pleɪ mi ə sɔŋ/', meaning: '给我弹一首' },
+    { style: 'follow-up', text: 'Do you play?', ipa: '/du ju pleɪ/', meaning: '你会弹吗？' },
   ],
 };
 
@@ -95,6 +95,7 @@ try {
     (apiBaseUrl) =>
       chrome.storage.local.set({
         openaiKey: 'sk-openai',
+        nativeLanguage: 'zh-CN',
         languages: 'es, en',
         profile: 'likes skiing',
         level: 'beginner',
@@ -154,7 +155,7 @@ try {
   assert.equal(request.headers.authorization, 'Bearer sk-openai');
   assert.equal(request.body.model, 'gpt-6-luna');
   assert.equal(request.body.reasoning_effort, 'none');
-  assert.ok(request.body.messages[1].content.includes('对方: hola de donde eres'));
+  assert.ok(request.body.messages[1].content.includes('Other person: hola de donde eres'));
 
   await waitFor(async () => (await panelText()).includes('Hi, I am from China'), 'suggestions');
   const text = await panelText();
@@ -176,8 +177,8 @@ try {
   await page.mouse.click(panelLeft + 252, 36);
   await waitFor(() => chatRequests.length === 3, 'a regenerated reply');
   const regenerated = chatRequests[2].body.messages[1].content;
-  assert.ok(regenerated.includes('我: Hi, I am from China'), 'a clicked reply joins the conversation');
-  assert.ok(regenerated.includes('我: Very far away'), 'a number key picks the second reply');
+  assert.ok(regenerated.includes('User: Hi, I am from China'), 'a clicked reply joins the conversation');
+  assert.ok(regenerated.includes('User: Very far away'), 'a number key picks the second reply');
   await waitFor(async () => (await panelText()).includes('en ·'), 'regenerated suggestions');
 
   await page.mouse.click(panelLeft + 137, 36);
@@ -212,7 +213,7 @@ try {
   serverSends(completed('item_2', 'otra persona'));
   await waitFor(() => chatRequests.length === 6, 'a reply after the reset');
   const afterReset = chatRequests[5].body.messages[1].content;
-  assert.ok(afterReset.includes('对方: otra persona'));
+  assert.ok(afterReset.includes('Other person: otra persona'));
   assert.ok(!afterReset.includes('hola de donde eres'), 'reset should clear the context');
   await waitFor(async () => (await panelText()).includes('And you?'), 'suggestions after the reset');
 
@@ -234,18 +235,21 @@ try {
   const options = await context.newPage();
   await options.goto(`chrome-extension://${extensionId}/options.html`);
   await options.waitForFunction(() => document.getElementById('openaiKey').value);
+  assert.equal(await options.textContent('h1'), 'Banter 设置');
   assert.equal(await options.isVisible('#customModel'), false);
+  await options.selectOption('#nativeLanguage', 'en');
+  assert.equal(await options.textContent('h1'), 'Banter settings');
   await options.selectOption('#replyProvider', 'custom');
   assert.equal(await options.isVisible('#customModel'), true);
   await options.fill('#customModel', 'local-model');
   await options.fill('#customBaseUrl', 'not a url');
   await options.click('#save');
-  await options.waitForFunction(() => document.getElementById('saved').textContent.includes('不正确'));
+  await options.waitForFunction(() => document.getElementById('saved').textContent.includes('not valid'));
   await options.fill('#customBaseUrl', `http://localhost:${port}/custom/v1/chat/completions`);
   await options.fill('#customKey', 'sk-custom');
   await options.selectOption('#customFormat', 'json_object');
   await options.click('#save');
-  await options.waitForFunction(() => document.getElementById('saved').textContent === '已保存');
+  await options.waitForFunction(() => document.getElementById('saved').textContent === 'Saved');
   await options.close();
 
   const before = chatRequests.length;
@@ -258,8 +262,13 @@ try {
   assert.equal(custom.body.reasoning_effort, undefined);
   assert.deepEqual(custom.body.response_format, { type: 'json_object' });
   assert.ok(custom.body.messages[0].content.includes('JSON schema'));
+  assert.ok(custom.body.messages[0].content.includes("The user's language is English."));
   await waitFor(async () => (await panelText()).includes('Por fin alguien'), 'custom openers');
-  await waitFor(async () => (await panelText()).includes('转写约 $'), 'a meter without reply prices');
+  const english = await panelText();
+  for (const expected of ['Idle · no speech sent', '2 Playful', 'Play', 'New chat']) {
+    assert.ok(english.includes(expected), `the English panel is missing ${expected}`);
+  }
+  await waitFor(async () => (await panelText()).includes('transcription ~$'), 'a meter without reply prices');
 
   assert.equal(await isStopped(), false);
   await page.reload();

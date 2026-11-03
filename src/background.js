@@ -1,5 +1,6 @@
 const SETTING_KEYS = [
   'openaiKey',
+  'nativeLanguage',
   'replyProvider',
   'customBaseUrl',
   'customKey',
@@ -39,6 +40,14 @@ async function start(tab) {
   });
   // The overlay connects to the offscreen document as it loads, so this order matters.
   try {
+    // The overlay reads this as it builds, to pick its language.
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: (nativeLanguage) => {
+        window.__banterNativeLanguage = nativeLanguage;
+      },
+      args: [settings.nativeLanguage ?? null],
+    });
     await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['overlay.js'] });
   } catch (err) {
     await chrome.offscreen.closeDocument();
@@ -70,7 +79,7 @@ async function toggle(tab) {
 }
 
 chrome.action.onClicked.addListener((tab) => {
-  toggle(tab).catch((err) => console.error('[copilot] toggle failed', err));
+  toggle(tab).catch((err) => console.error('[banter] toggle failed', err));
 });
 
 chrome.runtime.onMessage.addListener((msg) => {
@@ -79,6 +88,6 @@ chrome.runtime.onMessage.addListener((msg) => {
     // The tab can be closing or navigating; a lost update is harmless.
     chrome.tabs.sendMessage(msg.tabId, msg.payload).catch(() => {});
   } else if (msg.type === 'stop') {
-    stop(msg.notice).catch((err) => console.error('[copilot] stop failed', err));
+    stop(msg.notice).catch((err) => console.error('[banter] stop failed', err));
   }
 });

@@ -4,22 +4,21 @@ import { build } from 'esbuild';
 await rm('dist', { recursive: true, force: true });
 
 await build({
-  entryPoints: ['src/offscreen.js'],
+  entryPoints: ['src/offscreen.js', 'src/overlay.js', 'src/options.js'],
   bundle: true,
   format: 'iife',
   platform: 'browser',
   target: 'chrome116',
-  outfile: 'dist/offscreen.js',
+  outdir: 'dist',
 });
 
 for (const file of [
   'manifest.json',
   'background.js',
-  'overlay.js',
   'pcm-worklet.js',
   'offscreen.html',
   'options.html',
-  'options.js',
+  '_locales',
 ]) {
-  await cp(`src/${file}`, `dist/${file}`);
+  await cp(`src/${file}`, `dist/${file}`, { recursive: true });
 }

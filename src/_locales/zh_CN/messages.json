@@ -1,0 +1,7 @@
+{
+  "name": { "message": "Banter 聊天副驾" },
+  "description": {
+    "message": "实时转写对方的话并翻译成你的语言，再用对方的语言给出三条候选回复。"
+  },
+  "actionTitle": { "message": "开始 / 停止 Banter" }
+}

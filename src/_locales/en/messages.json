@@ -1,0 +1,7 @@
+{
+  "name": { "message": "Banter" },
+  "description": {
+    "message": "Live transcription, translation and reply suggestions for voice and video chats."
+  },
+  "actionTitle": { "message": "Start / stop Banter" }
+}

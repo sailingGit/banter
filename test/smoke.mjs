@@ -36,7 +36,7 @@ function report(name, ok, detail) {
 }
 
 function synthesizePcm() {
-  const dir = mkdtempSync(join(tmpdir(), 'copilot-smoke-'));
+  const dir = mkdtempSync(join(tmpdir(), 'banter-smoke-'));
   try {
     const aiff = join(dir, 'speech.aiff');
     const raw = join(dir, 'speech.pcm');

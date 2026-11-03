@@ -1,3 +1,5 @@
+import { translator } from './i18n.js';
+
 const DEFAULT_BASE_URL = 'https://api.openai.com/v1';
 const MAX_RECONNECTS = 5;
 
@@ -89,7 +91,8 @@ export function toBase64(buffer) {
 
 // Turns Realtime transcription events into live text plus finished utterances.
 export class TranscriptAssembler {
-  constructor() {
+  constructor(t = translator('en')) {
+    this.t = t;
     this.partials = new Map();
   }
 
@@ -108,11 +111,11 @@ export class TranscriptAssembler {
       }
       case 'conversation.item.input_audio_transcription.failed':
         this.partials.delete(event.item_id);
-        return { error: event.error?.message ?? '转写失败' };
+        return { error: event.error?.message ?? this.t('asr.failed') };
       case 'error':
         // A noise burst can be committed with too little audio; nothing is lost.
         if (event.error?.code === 'input_audio_buffer_commit_empty') return {};
-        return { error: event.error?.message ?? '转写出错' };
+        return { error: event.error?.message ?? this.t('asr.error') };
       default:
         return {};
     }
@@ -120,11 +123,11 @@ export class TranscriptAssembler {
 }
 
 export class OpenAITranscriber {
-  constructor({ apiKey, baseUrl, languages, onInterim, onUtterance, onSending, onError }) {
-    Object.assign(this, { apiKey, onInterim, onUtterance, onSending, onError });
+  constructor({ apiKey, baseUrl, languages, t, onInterim, onUtterance, onSending, onError }) {
+    Object.assign(this, { apiKey, t, onInterim, onUtterance, onSending, onError });
     this.baseUrl = baseUrl || DEFAULT_BASE_URL;
     this.session = sessionConfig(languages);
-    this.assembler = new TranscriptAssembler();
+    this.assembler = new TranscriptAssembler(t);
     this.turns = new TurnDetector();
     this.preRoll = [];
     this.sentFrames = 0;
@@ -143,7 +146,7 @@ export class OpenAITranscriber {
       body: JSON.stringify({ session: this.session }),
     });
     if (response.status === 401) {
-      this.fail('OpenAI Key 无效');
+      this.fail(this.t('error.badKey', { provider: 'OpenAI' }));
       return null;
     }
     if (!response.ok) throw new Error(`client secret request failed: ${response.status}`);
@@ -155,7 +158,7 @@ export class OpenAITranscriber {
     try {
       secret = await this.mintClientSecret();
     } catch (err) {
-      console.error('[copilot] client secret failed', err);
+      console.error('[banter] client secret failed', err);
       this.retry();
       return;
     }
@@ -179,7 +182,7 @@ export class OpenAITranscriber {
   retry() {
     if (this.closed) return;
     if (this.reconnects++ >= MAX_RECONNECTS) {
-      this.fail('连不上 OpenAI 实时转写，请检查网络');
+      this.fail(this.t('asr.unreachable'));
       return;
     }
     setTimeout(() => this.connect(), 1000 * this.reconnects);

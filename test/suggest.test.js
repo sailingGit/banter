@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { afterEach, test } from 'node:test';
+import { resolveNativeLanguage, translator, uiLanguage } from '../src/i18n.js';
 import {
   ApiError,
+  ReplyError,
   aboutUser,
   buildRequest,
   buildSceneRequest,
@@ -36,8 +38,8 @@ test('transcript labels speakers and keeps only recent turns', () => {
     text: `line ${i}`,
   }));
   const transcript = buildTranscript(many);
-  assert.ok(transcript.includes('我: line 19'));
-  assert.ok(transcript.includes('对方: line 18'));
+  assert.ok(transcript.includes('User: line 19'));
+  assert.ok(transcript.includes('Other person: line 18'));
   assert.ok(!transcript.includes('line 7'));
 });
 
@@ -94,8 +96,31 @@ test('request asks for schema-shaped JSON', () => {
   assert.ok(schema.properties.suggestions);
   assert.ok(schema.required.includes('ipa'));
   assert.ok(schema.properties.suggestions.items.required.includes('ipa'));
+  assert.ok(schema.properties.suggestions.items.required.includes('meaning'));
+  assert.deepEqual(schema.properties.suggestions.items.properties.style.enum, [
+    'relaxed',
+    'playful',
+    'follow-up',
+  ]);
   assert.equal(body.messages[0].role, 'system');
-  assert.ok(body.messages[1].content.includes('对方: hola'));
+  assert.ok(body.messages[1].content.includes('Other person: hola'));
+});
+
+test('the native language follows the setting, then the browser', () => {
+  assert.equal(resolveNativeLanguage('ja', 'en-US'), 'ja');
+  assert.equal(resolveNativeLanguage(undefined, 'zh-CN'), 'zh-CN');
+  assert.equal(resolveNativeLanguage(undefined, 'zh-HK'), 'zh-TW');
+  assert.equal(resolveNativeLanguage(undefined, 'de-AT'), 'de');
+  assert.equal(resolveNativeLanguage('xx', 'sv-SE'), 'en');
+  assert.equal(uiLanguage('zh-TW'), 'zh');
+  assert.equal(uiLanguage('ja'), 'en');
+});
+
+test('replies explain themselves in the user language', () => {
+  const english = createClient({ nativeLanguage: 'en' });
+  assert.ok(buildRequest(english, turns).messages[0].content.includes("The user's language is English."));
+  const chinese = createClient({ nativeLanguage: 'zh-CN' });
+  assert.ok(aboutUser(chinese).includes('Simplified Chinese'));
 });
 
 test('the profile and level shape the prompt without inviting invented facts', () => {
@@ -157,12 +182,13 @@ test('reply cost uses token usage where a price is known', () => {
 
 test('suggest reports refusals and truncation instead of parsing them', async () => {
   const client = createClient({ openaiKey: 'sk-o' });
+  const code = (expected) => (err) => err instanceof ReplyError && err.code === expected;
   mockCompletion({ refusal: 'no' });
-  await assert.rejects(suggest(client, turns), /拒绝/);
+  await assert.rejects(suggest(client, turns), code('refused'));
   mockCompletion({ content: '' }, 'content_filter');
-  await assert.rejects(suggest(client, turns), /拒绝/);
+  await assert.rejects(suggest(client, turns), code('refused'));
   mockCompletion({ content: '{"lang' }, 'length');
-  await assert.rejects(suggest(client, turns), /截断/);
+  await assert.rejects(suggest(client, turns), code('truncated'));
 });
 
 test('API failures become readable messages', async () => {
@@ -170,8 +196,13 @@ test('API failures become readable messages', async () => {
   const client = createClient({ openaiKey: 'bad' });
   const err = await suggest(client, turns).catch((e) => e);
   assert.ok(err instanceof ApiError);
-  assert.equal(describeError(err), 'OpenAI Key 无效');
-  assert.match(describeError(new ApiError('OpenAI', 429)), /余额不足/);
-  assert.match(describeError(new TypeError('fetch failed')), /网络/);
-  assert.match(describeError(new ApiError('自定义模型', 400)), /结构化输出/);
+  const zh = translator('zh');
+  const en = translator('en');
+  assert.equal(describeError(err, zh), 'OpenAI Key 无效');
+  assert.equal(describeError(err, en), 'OpenAI key is invalid');
+  assert.match(describeError(new ApiError('openai', 429), zh), /余额不足/);
+  assert.match(describeError(new TypeError('fetch failed'), zh), /网络/);
+  assert.match(describeError(new ApiError('custom', 400), zh), /自定义模型.*结构化输出/);
+  assert.match(describeError(new ApiError('custom', 404), en), /^Custom endpoint error \(404\)$/);
+  assert.equal(describeError(new ReplyError('truncated'), en), 'The reply was cut off');
 });

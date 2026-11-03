@@ -96,7 +96,7 @@ export async function startMocks({ page, files = {}, respond, delayMs = 0 }) {
 export async function launchExtension() {
   // The real extension gets host access from the action click through activeTab,
   // which automation cannot trigger, so the test copy is granted it directly.
-  const root = await realpath(await mkdtemp(join(tmpdir(), 'copilot-e2e-')));
+  const root = await realpath(await mkdtemp(join(tmpdir(), 'banter-e2e-')));
   const extension = join(root, 'extension');
   await cp('dist', extension, { recursive: true });
   const manifest = JSON.parse(await readFile(join(extension, 'manifest.json'), 'utf8'));
@@ -178,3 +178,23 @@ export const completed = (itemId, transcript) => ({
   content_index: 0,
   transcript,
 });
+
+// Clicks a panel header button by its data-action, wherever the layout put it.
+export async function clickPanelButton(context, page, action) {
+  const client = await context.newCDPSession(page);
+  await client.send('DOM.enable');
+  const { root } = await client.send('DOM.getDocument', { depth: -1, pierce: true });
+  const find = (node) => {
+    const attributes = node.attributes ?? [];
+    if (attributes[attributes.indexOf('data-action') + 1] === action) return node;
+    for (const child of [...(node.children ?? []), ...(node.shadowRoots ?? [])]) {
+      const found = find(child);
+      if (found) return found;
+    }
+    return null;
+  };
+  const { model } = await client.send('DOM.getBoxModel', { nodeId: find(root).nodeId });
+  await client.detach();
+  const [x1, y1, , , x3, y3] = model.content;
+  await page.mouse.click((x1 + x3) / 2, (y1 + y3) / 2);
+}

@@ -1,18 +1,36 @@
 {
   "manifest_version": 3,
-  "name": "聊天副驾",
-  "version": "0.1.0",
-  "description": "实时转写对方的话，翻译成中文，并用对方的语言给出三条候选回复。",
+  "name": "__MSG_name__",
+  "version": "0.2.0",
+  "description": "__MSG_description__",
+  "default_locale": "en",
   "minimum_chrome_version": "116",
-  "permissions": ["activeTab", "tabCapture", "offscreen", "scripting", "storage"],
-  "host_permissions": ["https://api.openai.com/*"],
-  "optional_host_permissions": ["https://*/*", "http://*/*"],
-  "background": { "service_worker": "background.js" },
-  "action": { "default_title": "开始 / 停止聊天副驾" },
+  "permissions": [
+    "activeTab",
+    "tabCapture",
+    "offscreen",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://api.openai.com/*"
+  ],
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "__MSG_actionTitle__"
+  },
   "options_page": "options.html",
   "commands": {
     "_execute_action": {
-      "suggested_key": { "default": "Alt+Shift+C" }
+      "suggested_key": {
+        "default": "Alt+Shift+C"
+      }
     }
   }
 }
