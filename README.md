@@ -4,7 +4,7 @@
   <p><strong>听懂对方，也接得上话。</strong></p>
   <p>Live transcription, translation and reply suggestions for voice and video chats in Chrome.</p>
   <p>
-    <img alt="Version 0.2.0" src="https://img.shields.io/badge/version-0.2.0-2f6fed?style=flat-square" />
+    <img alt="Version 0.2.1" src="https://img.shields.io/badge/version-0.2.1-2f6fed?style=flat-square" />
     <img alt="Chrome 116+" src="https://img.shields.io/badge/Chrome-116%2B-292929?style=flat-square" />
     <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-595959?style=flat-square" />
     <a href="https://github.com/sailingGit/banter/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/sailingGit/banter/ci.yml?branch=main&style=flat-square&label=CI" /></a>
@@ -72,11 +72,11 @@ OpenAI 给组织赠送了开发者平台的 credit，我想拿来做一点自己
 
 ## 下载
 
-当前版本 **[v0.2.0](https://github.com/sailingGit/banter/releases/tag/v0.2.0)**。
+当前版本 **[v0.2.1](https://github.com/sailingGit/banter/releases/tag/v0.2.1)**。
 
 | 组件 | 下载 | 验证状态 |
 | --- | --- | --- |
-| Chrome 扩展 | [banter-0.2.0.zip](https://github.com/sailingGit/banter/releases/download/v0.2.0/banter-0.2.0.zip) | 端到端测试通过；真实接口待实测 |
+| Chrome 扩展 | [banter-0.2.1.zip](https://github.com/sailingGit/banter/releases/download/v0.2.1/banter-0.2.1.zip) | 端到端测试通过；真实接口待实测 |
 
 解压后按下面「加载扩展」的步骤操作，不需要安装 Node.js。扩展尚未上架 Chrome 应用商店。
 
@@ -153,7 +153,7 @@ OpenAI 的文档没有说明实时转写按发送的音频还是按连接时长�
 
 ## 当前版本范围
 
-当前版本为 **v0.2.0**，以开发者模式加载，尚未发布到 Chrome 应用商店。
+当前版本为 **v0.2.1**，以开发者模式加载，尚未发布到 Chrome 应用商店。
 
 - **只听对方**：扩展只抓标签页的声音。你自己说的话不会被转写，上下文里只有你选用过的回复。
 - **断句**：`gpt-live-transcribe` 没有服务端断句，扩展靠音量判断对方说完。静音约 0.6 秒算一句，连续说 15 秒会强制断开；环境很吵时断句会变差。

@@ -4,7 +4,7 @@
   <p><strong>Understand them. Keep the conversation going.</strong></p>
   <p>Live transcription, translation and reply suggestions for voice and video chats in Chrome.</p>
   <p>
-    <img alt="Version 0.2.0" src="https://img.shields.io/badge/version-0.2.0-2f6fed?style=flat-square" />
+    <img alt="Version 0.2.1" src="https://img.shields.io/badge/version-0.2.1-2f6fed?style=flat-square" />
     <img alt="Chrome 116+" src="https://img.shields.io/badge/Chrome-116%2B-292929?style=flat-square" />
     <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-595959?style=flat-square" />
     <a href="https://github.com/sailingGit/banter/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/sailingGit/banter/ci.yml?branch=main&style=flat-square&label=CI" /></a>
@@ -72,11 +72,11 @@ For a Chinese speaker talking with someone in English:
 
 ## Download
 
-Current version: **[v0.2.0](https://github.com/sailingGit/banter/releases/tag/v0.2.0)**.
+Current version: **[v0.2.1](https://github.com/sailingGit/banter/releases/tag/v0.2.1)**.
 
 | Component | Download | Status |
 | --- | --- | --- |
-| Chrome extension | [banter-0.2.0.zip](https://github.com/sailingGit/banter/releases/download/v0.2.0/banter-0.2.0.zip) | End-to-end tests pass; real API use still being tested |
+| Chrome extension | [banter-0.2.1.zip](https://github.com/sailingGit/banter/releases/download/v0.2.1/banter-0.2.1.zip) | End-to-end tests pass; real API use still being tested |
 
 Unzip it and follow "Load the extension" below. No Node.js needed. Banter is not on the Chrome Web Store yet.
 
@@ -153,7 +153,7 @@ OpenAI's documentation does not say whether live transcription is billed by audi
 
 ## Scope of this version
 
-This is **v0.2.0**, loaded in Developer mode and not yet on the Chrome Web Store.
+This is **v0.2.1**, loaded in Developer mode and not yet on the Chrome Web Store.
 
 - **Only their side**: Banter captures tab audio. Your own voice is not transcribed; the context only holds replies you picked.
 - **Turn taking**: `gpt-live-transcribe` has no server-side turn detection, so Banter decides a sentence ended after about 0.6 seconds of silence, and cuts at 15 seconds of nonstop speech. Noisy rooms make this worse.
