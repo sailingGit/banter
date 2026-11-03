@@ -1,7 +1,6 @@
 const FIELDS = [
   'openaiKey',
   'replyProvider',
-  'kimiKey',
   'customBaseUrl',
   'customKey',
   'customModel',

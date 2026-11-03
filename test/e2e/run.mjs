@@ -1,5 +1,5 @@
 // Loads the built extension into real Chromium and runs the whole pipeline
-// against local stand-ins for OpenAI and Kimi: a page plays a tone, the
+// against local stand-ins for OpenAI and a compatible endpoint: a page plays a tone, the
 // extension captures it, and the suggestions must reach the in-page panel.
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
@@ -208,8 +208,6 @@ try {
     (apiBaseUrl) =>
       chrome.storage.local.set({
         openaiKey: 'sk-openai',
-        kimiKey: 'sk-kimi',
-        replyProvider: 'kimi',
         languages: 'es, en',
         profile: 'likes skiing',
         level: 'beginner',
@@ -282,12 +280,12 @@ try {
   await waitFor(async () => (await panelText()).includes('没有发送语音'), 'billing to go idle');
 
   serverSends(completed('item_1', 'hola de donde eres'));
-  await waitFor(() => chatRequests.length === 2, 'the Kimi request');
+  await waitFor(() => chatRequests.length === 2, 'the reply request');
   const request = chatRequests[1];
   assert.equal(request.url, '/v1/chat/completions');
-  assert.equal(request.headers.authorization, 'Bearer sk-kimi');
-  assert.equal(request.body.model, 'kimi-k3.1-pro-highspeed');
-  assert.equal(request.body.reasoning_effort, 'low');
+  assert.equal(request.headers.authorization, 'Bearer sk-openai');
+  assert.equal(request.body.model, 'gpt-6-luna');
+  assert.equal(request.body.reasoning_effort, 'none');
   assert.ok(request.body.messages[1].content.includes('对方: hola de donde eres'));
 
   await waitFor(async () => (await panelText()).includes('Hi, I am from China'), 'suggestions');
@@ -295,7 +293,7 @@ try {
   for (const expected of [REPLY.translation, 'Very far away', 'And you?', '你呢？', '轻松', REPLY.ipa, '/ænd ju/']) {
     assert.ok(text.includes(expected), `panel is missing ${expected}`);
   }
-  await waitFor(async () => /语音 \d+\.\d 分钟 · 转写约 \$/.test(await panelText()), 'the cost meter');
+  await waitFor(async () => /语音 \d+\.\d 分钟 · 约 \$/.test(await panelText()), 'the cost meter');
 
   await page.screenshot({ path: join(process.cwd(), 'test/e2e/panel.png') });
 
@@ -372,10 +370,9 @@ try {
   const options = await context.newPage();
   await options.goto(`chrome-extension://${extensionId}/options.html`);
   await options.waitForFunction(() => document.getElementById('openaiKey').value);
-  assert.equal(await options.isVisible('#kimiKey'), true);
   assert.equal(await options.isVisible('#customModel'), false);
   await options.selectOption('#replyProvider', 'custom');
-  assert.equal(await options.isVisible('#kimiKey'), false);
+  assert.equal(await options.isVisible('#customModel'), true);
   await options.fill('#customModel', 'local-model');
   await options.fill('#customBaseUrl', 'not a url');
   await options.click('#save');
@@ -398,6 +395,7 @@ try {
   assert.deepEqual(custom.body.response_format, { type: 'json_object' });
   assert.ok(custom.body.messages[0].content.includes('JSON schema'));
   await waitFor(async () => (await panelText()).includes('Por fin alguien'), 'custom openers');
+  await waitFor(async () => (await panelText()).includes('转写约 $'), 'a meter without reply prices');
 
   assert.equal(await isStopped(), false);
   await page.reload();

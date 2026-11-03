@@ -1,6 +1,5 @@
 const SETTING_KEYS = [
   'openaiKey',
-  'kimiKey',
   'replyProvider',
   'customBaseUrl',
   'customKey',
@@ -21,8 +20,8 @@ async function isCapturing() {
 
 function isConfigured(settings) {
   if (!settings.openaiKey) return false;
-  if (settings.replyProvider === 'custom') return settings.customBaseUrl && settings.customModel;
-  return !settings.replyProvider?.startsWith('kimi') || settings.kimiKey;
+  if (settings.replyProvider !== 'custom') return true;
+  return settings.customBaseUrl && settings.customModel;
 }
 
 async function start(tab) {

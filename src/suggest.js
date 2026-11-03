@@ -6,32 +6,16 @@ const DEFAULT_LANGUAGE = 'en';
 const CUSTOM_NAME = '自定义模型';
 
 // Replies must land within a second or two of the other person finishing, so
-// each preset uses the fastest option. Kimi's K3 line cannot turn thinking off.
-// Any other OpenAI-compatible service goes through customProvider.
-export const PROVIDERS = {
-  openai: {
-    name: 'OpenAI',
-    baseUrl: 'https://api.openai.com/v1',
-    keyField: 'openaiKey',
-    model: 'gpt-6-luna',
-    reasoningEffort: 'none',
-    inputPrice: 0.1,
-    outputPrice: 0.5,
-  },
-  kimi: {
-    name: 'Kimi',
-    baseUrl: 'https://api.moonshot.cn/v1',
-    keyField: 'kimiKey',
-    model: 'kimi-k3.1-pro-highspeed',
-    reasoningEffort: 'low',
-  },
-  'kimi-global': {
-    name: 'Kimi',
-    baseUrl: 'https://api.moonshot.ai/v1',
-    keyField: 'kimiKey',
-    model: 'kimi-k3.1-pro-highspeed',
-    reasoningEffort: 'low',
-  },
+// the default model runs without reasoning. Any other OpenAI-compatible
+// service goes through customProvider.
+const OPENAI = {
+  name: 'OpenAI',
+  baseUrl: 'https://api.openai.com/v1',
+  keyField: 'openaiKey',
+  model: 'gpt-6-luna',
+  reasoningEffort: 'none',
+  inputPrice: 0.1,
+  outputPrice: 0.5,
 };
 
 const LEVELS = {
@@ -131,8 +115,8 @@ function buildClient(provider, settings) {
   };
 }
 
-function presetClient(provider, settings) {
-  return buildClient({ ...provider, baseUrl: settings.apiBaseUrl || provider.baseUrl }, settings);
+function openaiClient(settings) {
+  return buildClient({ ...OPENAI, baseUrl: settings.apiBaseUrl || OPENAI.baseUrl }, settings);
 }
 
 // People paste either the base URL or the full endpoint from a provider's docs.
@@ -149,13 +133,13 @@ function customProvider(settings) {
 
 export function createClient(settings) {
   if (settings.replyProvider === 'custom') return buildClient(customProvider(settings), settings);
-  return presetClient(PROVIDERS[settings.replyProvider] ?? PROVIDERS.openai, settings);
+  return openaiClient(settings);
 }
 
 // Scene questions always go to OpenAI: its key is required anyway, and
 // gpt-6-luna's image input and pricing are documented.
 export function createVisionClient(settings) {
-  return presetClient(PROVIDERS.openai, settings);
+  return openaiClient(settings);
 }
 
 export function aboutUser(client) {

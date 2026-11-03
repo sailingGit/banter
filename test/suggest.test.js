@@ -42,20 +42,11 @@ test('transcript labels speakers and keeps only recent turns', () => {
 });
 
 test('OpenAI is the default route and uses the OpenAI key', () => {
-  const client = createClient({ openaiKey: 'sk-o', kimiKey: 'sk-k' });
+  const client = createClient({ openaiKey: 'sk-o', customKey: 'sk-c' });
   assert.equal(client.baseUrl, 'https://api.openai.com/v1');
   assert.equal(client.model, 'gpt-6-luna');
   assert.equal(client.reasoningEffort, 'none');
   assert.equal(client.apiKey, 'sk-o');
-});
-
-test('Kimi routes use the Kimi key and the lowest reasoning effort', () => {
-  const cn = createClient({ replyProvider: 'kimi', openaiKey: 'sk-o', kimiKey: 'sk-k' });
-  assert.equal(cn.baseUrl, 'https://api.moonshot.cn/v1');
-  assert.equal(cn.apiKey, 'sk-k');
-  assert.equal(cn.reasoningEffort, 'low');
-  const global = createClient({ replyProvider: 'kimi-global', kimiKey: 'sk-k' });
-  assert.equal(global.baseUrl, 'https://api.moonshot.ai/v1');
 });
 
 test('a custom route uses the configured endpoint, key and model', () => {
@@ -94,9 +85,9 @@ test('custom replies may arrive in a code fence, and a key is optional', async (
 });
 
 test('request asks for schema-shaped JSON', () => {
-  const body = buildRequest(createClient({ replyProvider: 'kimi' }), turns);
-  assert.equal(body.model, 'kimi-k3.1-pro-highspeed');
-  assert.equal(body.reasoning_effort, 'low');
+  const body = buildRequest(createClient({}), turns);
+  assert.equal(body.model, 'gpt-6-luna');
+  assert.equal(body.reasoning_effort, 'none');
   assert.equal(body.response_format.type, 'json_schema');
   assert.equal(body.response_format.json_schema.name, 'reply_suggestions');
   const { schema } = body.response_format.json_schema;
@@ -126,7 +117,12 @@ test('an empty conversation asks for openers in the first listed language', () =
 });
 
 test('scene requests go to OpenAI with one low-detail image', () => {
-  const client = createVisionClient({ replyProvider: 'kimi', openaiKey: 'sk-o', kimiKey: 'sk-k' });
+  const client = createVisionClient({
+    replyProvider: 'custom',
+    customBaseUrl: 'https://llm.example/v1',
+    openaiKey: 'sk-o',
+    customKey: 'sk-c',
+  });
   assert.equal(client.apiKey, 'sk-o');
   assert.equal(client.model, 'gpt-6-luna');
 
@@ -155,7 +151,8 @@ test('reply cost uses token usage where a price is known', () => {
   const usage = { prompt_tokens: 1_000_000, completion_tokens: 1_000_000 };
   assert.ok(Math.abs(replyCost(createClient({}), usage) - 0.6) < 1e-9);
   assert.equal(replyCost(createClient({}), undefined), 0);
-  assert.equal(replyCost(createClient({ replyProvider: 'kimi' }), usage), 0);
+  const custom = createClient({ replyProvider: 'custom', customBaseUrl: 'https://llm.example/v1' });
+  assert.equal(replyCost(custom, usage), 0);
 });
 
 test('suggest reports refusals and truncation instead of parsing them', async () => {
@@ -170,10 +167,10 @@ test('suggest reports refusals and truncation instead of parsing them', async ()
 
 test('API failures become readable messages', async () => {
   globalThis.fetch = async () => new Response('', { status: 401 });
-  const client = createClient({ replyProvider: 'kimi', kimiKey: 'bad' });
+  const client = createClient({ openaiKey: 'bad' });
   const err = await suggest(client, turns).catch((e) => e);
   assert.ok(err instanceof ApiError);
-  assert.equal(describeError(err), 'Kimi Key 无效');
+  assert.equal(describeError(err), 'OpenAI Key 无效');
   assert.match(describeError(new ApiError('OpenAI', 429)), /余额不足/);
   assert.match(describeError(new TypeError('fetch failed')), /网络/);
   assert.match(describeError(new ApiError('自定义模型', 400)), /结构化输出/);

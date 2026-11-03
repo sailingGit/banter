@@ -1,7 +1,6 @@
 {
   "name": "live-chat-copilot",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
@@ -13,5 +12,6 @@
     "esbuild": "^0.28.2",
     "playwright": "^1.64.1",
     "ws": "^8.18.0"
-  }
+  },
+  "license": "MIT"
 }

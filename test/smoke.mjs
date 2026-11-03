@@ -1,4 +1,4 @@
-// Calls the real OpenAI and Kimi APIs with synthesized speech. This spends a
+// Calls the real OpenAI API, and optionally a compatible endpoint, with synthesized speech. This spends a
 // small amount of money, so it only runs on demand: npm run smoke
 // Keys come from .env.local or the environment and are never printed.
 import { execFileSync } from 'node:child_process';
@@ -15,7 +15,13 @@ const CHUNK_BYTES = 4800;
 const BASE_URL = 'https://api.openai.com/v1';
 
 const openaiKey = process.env.OPENAI_API_KEY;
-const kimiKey = process.env.KIMI_API_KEY;
+const custom = {
+  replyProvider: 'custom',
+  customBaseUrl: process.env.CHAT_BASE_URL,
+  customKey: process.env.CHAT_API_KEY,
+  customModel: process.env.CHAT_MODEL,
+  customFormat: process.env.CHAT_FORMAT,
+};
 const results = [];
 
 function report(name, ok, detail) {
@@ -125,8 +131,8 @@ async function transcribe(pcm, secret, session) {
   });
 }
 
-async function checkReply(replyProvider, utterance) {
-  const client = createClient({ replyProvider, openaiKey, kimiKey });
+async function checkReply(settings, utterance) {
+  const client = createClient(settings);
   const startedAt = performance.now();
   try {
     const { reply } = await suggest(client, [{ speaker: 'them', text: utterance }]);
@@ -135,10 +141,10 @@ async function checkReply(replyProvider, utterance) {
       reply.translation &&
       reply.suggestions?.length === 3 &&
       reply.suggestions.every((item) => item.text && item.zh);
-    report(`${replyProvider} reply (${client.model})`, Boolean(shaped), `${ms} ms`);
+    report(`${client.name} reply (${client.model})`, Boolean(shaped), `${ms} ms`);
     console.log(JSON.stringify(reply, null, 2));
   } catch (err) {
-    report(`${replyProvider} reply (${client.model})`, false, describeError(err));
+    report(`${client.name} reply (${client.model})`, false, describeError(err));
   }
 }
 
@@ -161,12 +167,12 @@ if (openaiKey) {
   } catch (err) {
     report('realtime transcription', false, err.message);
   }
-  await checkReply('openai', utterance);
+  await checkReply({ openaiKey }, utterance);
 } else {
   console.log('SKIP  OpenAI: OPENAI_API_KEY is not set');
 }
 
-if (kimiKey) await checkReply(process.env.KIMI_PROVIDER ?? 'kimi', utterance);
-else console.log('SKIP  Kimi: KIMI_API_KEY is not set');
+if (custom.customBaseUrl && custom.customModel) await checkReply(custom, utterance);
+else console.log('SKIP  compatible endpoint: CHAT_BASE_URL or CHAT_MODEL is not set');
 
 process.exit(results.length > 0 && results.every(Boolean) ? 0 : 1);

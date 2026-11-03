@@ -23,19 +23,12 @@
       回复模型
       <select id="replyProvider">
         <option value="openai">OpenAI（gpt-6-luna）</option>
-        <option value="kimi">Kimi 中国站（api.moonshot.cn）</option>
-        <option value="kimi-global">Kimi 国际站（api.moonshot.ai）</option>
-        <option value="custom">自定义（任何兼容 OpenAI 格式的接口）</option>
+        <option value="custom">其他兼容 OpenAI 格式的接口</option>
       </select>
-    </label>
-    <label data-provider="kimi kimi-global">
-      Kimi API Key
-      <input id="kimiKey" type="password" autocomplete="off" />
-      <small>中国站和国际站的 Key 不通用。</small>
     </label>
     <label data-provider="custom">
       接口地址
-      <input id="customBaseUrl" placeholder="例如 https://api.deepseek.com/v1" />
+      <input id="customBaseUrl" placeholder="例如 https://api.example.com/v1" />
       <small>要兼容 OpenAI Chat Completions 格式。保存时 Chrome 会询问是否允许访问这个地址。</small>
     </label>
     <label data-provider="custom">
@@ -45,7 +38,7 @@
     </label>
     <label data-provider="custom">
       模型名
-      <input id="customModel" placeholder="例如 deepseek-chat" />
+      <input id="customModel" placeholder="接口支持的模型名" />
     </label>
     <label data-provider="custom">
       结构化输出

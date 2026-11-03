@@ -5,11 +5,7 @@
   "description": "实时转写对方的话，翻译成中文，并用对方的语言给出三条候选回复。",
   "minimum_chrome_version": "116",
   "permissions": ["activeTab", "tabCapture", "offscreen", "scripting", "storage"],
-  "host_permissions": [
-    "https://api.openai.com/*",
-    "https://api.moonshot.cn/*",
-    "https://api.moonshot.ai/*"
-  ],
+  "host_permissions": ["https://api.openai.com/*"],
   "optional_host_permissions": ["https://*/*", "http://*/*"],
   "background": { "service_worker": "background.js" },
   "action": { "default_title": "开始 / 停止聊天副驾" },
